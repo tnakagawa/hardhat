@@ -4,6 +4,12 @@ import type { HardhatViemClients } from "../types";
 
 import memoize from "lodash.memoize";
 
+import {
+  privateKeyToAccount,
+  mnemonicToAccount,
+  hdKeyToAccount,
+} from "viem/accounts";
+
 const checkIsHardhatNetwork = memoize(async (provider: EthereumProvider) => {
   try {
     await provider.send("hardhat_metadata");
@@ -34,7 +40,7 @@ export async function getClients(
   const isHardhatNetwork = await checkIsHardhatNetwork(provider);
   const accounts = await getAccounts(provider);
   const isLocalNetwork = chainId === 31337;
-  const pollingInterval = isLocalNetwork ? 100 : 4000;
+  const pollingInterval = isLocalNetwork ? 0 : 4000;
   const chain = isLocalNetwork
     ? isHardhatNetwork
       ? chains.hardhat
@@ -62,6 +68,7 @@ export async function getClients(
   // create test client
   const testClient = viem.createTestClient({
     mode: "hardhat",
+    chain,
     transport: viem.custom(provider),
     pollingInterval,
   });
