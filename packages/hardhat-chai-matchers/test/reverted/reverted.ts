@@ -59,6 +59,8 @@ describe("INTEGRATION: Reverted", function () {
           ["pending", false]
         );
 
+        console.log("========> tx hash", tx.hash);
+        console.log("========> pendingBlock txs", pendingBlock.transactions);
         return pendingBlock.transactions.includes(tx.hash);
       }, "Transaction wasn't added to the mempool");
 

@@ -122,8 +122,10 @@ export class TxPool {
     const txNonce = tx.nonce;
 
     if (txNonce > nextPendingNonce) {
+      console.log("=======> txNonce > nextPendingNonce");
       this._addQueuedTransaction(tx);
     } else {
+      console.log("=======> txNonce <= nextPendingNonce");
       this._addPendingTransaction(tx);
     }
   }
