@@ -71,13 +71,13 @@ export function useEnvironmentWithNode(fixtureProjectName: string) {
     await this.hre.run("compile", { quiet: true });
 
     this.hhNodeProcess.stderr.on("data", (data: any) => {
-      console.log("node stderr", data.tostring());
+      console.log("node stderr", data.toString());
     });
 
     // wait until the node is ready
     return new Promise((resolve) => {
       this.hhNodeProcess.stdout.on("data", (data: any) => {
-        console.log("node stdout", data.tostring());
+        console.log("node stdout", data.toString());
         const nodeStarted = data
           .toString()
           .includes("Started HTTP and WebSocket JSON-RPC server at");
