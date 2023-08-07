@@ -1646,7 +1646,7 @@ Hardhat Network's forking functionality only works with blocks from at least spu
   }
 
   private async _addPendingTransaction(tx: TypedTransaction): Promise<string> {
-    console.log("===============> _addPendingTransaction hash", tx.hash);
+    console.log("===============> _addPendingTransaction hash", tx.hash().toString("hex"));
     await this._txPool.addTransaction(tx);
     await this._notifyPendingTransaction(tx);
     return bufferToHex(tx.hash());
