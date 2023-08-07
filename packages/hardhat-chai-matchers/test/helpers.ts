@@ -70,9 +70,14 @@ export function useEnvironmentWithNode(fixtureProjectName: string) {
     this.hre = require("hardhat");
     await this.hre.run("compile", { quiet: true });
 
+    this.hhNodeProcess.stderr.on("data", (data: any) => {
+      console.log("node stderr", data.tostring());
+    });
+
     // wait until the node is ready
     return new Promise((resolve) => {
       this.hhNodeProcess.stdout.on("data", (data: any) => {
+        console.log("node stdout", data.tostring());
         const nodeStarted = data
           .toString()
           .includes("Started HTTP and WebSocket JSON-RPC server at");
