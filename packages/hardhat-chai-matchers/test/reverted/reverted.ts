@@ -64,8 +64,8 @@ describe("INTEGRATION: Reverted", function () {
         return pendingBlock.transactions.includes(tx.hash);
       }, "Transaction wasn't added to the mempool");
 
-      await hre.network.provider.send("hardhat_mine", []);
       await hre.network.provider.send("evm_setAutomine", [true]);
+      await hre.network.provider.send("hardhat_mine", []);
 
       return tx;
     };
