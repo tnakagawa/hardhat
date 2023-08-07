@@ -11,7 +11,7 @@ export async function waitUntil(
     const result = await f();
 
     if (result) {
-      break;
+      return;
     }
 
     await sleep(50);
