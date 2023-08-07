@@ -51,7 +51,7 @@ describe("INTEGRATION: Reverted", function () {
       await hre.network.provider.send("evm_setAutomine", [false]);
 
       const [signer] = await hre.ethers.getSigners();
-      const tx = await signer.populateTransaction({ to: signer.address });
+      const tx = await signer.sendTransaction({ to: signer.address });
 
       await hre.network.provider.send("evm_setAutomine", [true]);
       await hre.network.provider.send("hardhat_mine", []);
