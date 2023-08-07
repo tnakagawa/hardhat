@@ -13,6 +13,7 @@ import {
   useEnvironment,
   useEnvironmentWithNode,
 } from "../helpers";
+import { waitUntil } from "../utils";
 
 describe("INTEGRATION: Reverted", function () {
   describe("with the in-process hardhat network", function () {
@@ -50,20 +51,16 @@ describe("INTEGRATION: Reverted", function () {
       const tx = await signer.sendTransaction({ to: signer.address });
 
       // it seems like sometimes ethers returns the transaction object before
-      // the transaction was added to the mempool, so we sent a simple RPC
-      // call as a way to "wait" for it
-      await hre.network.provider.send("eth_accounts", []);
-
-      const pendingBlock: RpcBlockOutput = await hre.network.provider.send(
-        "eth_getBlockByNumber",
-        ["pending", false]
-      );
-
-      if (!pendingBlock.transactions.includes(tx.hash)) {
-        throw new Error(
-          "The transaction we just sent is not ready to be mined"
+      // the transaction was added to the mempool, so we wait until the tx
+      // is ready to be mined
+      await waitUntil(async () => {
+        const pendingBlock: RpcBlockOutput = await hre.network.provider.send(
+          "eth_getBlockByNumber",
+          ["pending", false]
         );
-      }
+
+        return pendingBlock.transactions.includes(tx.hash);
+      }, "Transaction wasn't added to the mempool");
 
       await hre.network.provider.send("hardhat_mine", []);
       await hre.network.provider.send("evm_setAutomine", [true]);
