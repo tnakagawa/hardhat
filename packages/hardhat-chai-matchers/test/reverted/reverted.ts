@@ -2,6 +2,7 @@ import type { MatchersContract } from "../contracts";
 
 import { AssertionError, expect } from "chai";
 import { ProviderError } from "hardhat/internal/core/providers/errors";
+import { RpcBlockOutput } from "hardhat/internal/hardhat-network/provider/output";
 import path from "path";
 import util from "util";
 
@@ -47,6 +48,22 @@ describe("INTEGRATION: Reverted", function () {
 
       const [signer] = await hre.ethers.getSigners();
       const tx = await signer.sendTransaction({ to: signer.address });
+
+      // it seems like sometimes ethers returns the transaction object before
+      // the transaction was added to the mempool, so we sent a simple RPC
+      // call as a way to "wait" for it
+      await hre.network.provider.send("eth_accounts", []);
+
+      const pendingBlock: RpcBlockOutput = await hre.network.provider.send(
+        "eth_getBlockByNumber",
+        ["pending", false]
+      );
+
+      if (!pendingBlock.transactions.includes(tx.hash)) {
+        throw new Error(
+          "The transaction we just sent is not ready to be mined"
+        );
+      }
 
       await hre.network.provider.send("hardhat_mine", []);
       await hre.network.provider.send("evm_setAutomine", [true]);
