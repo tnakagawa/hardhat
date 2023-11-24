@@ -28,7 +28,7 @@ export function isTypescriptSupported() {
     try {
       // We resolve these from Hardhat's installation.
       require.resolve("typescript");
-      require.resolve("ts-node");
+      require.resolve("tsx");
       cachedIsTypescriptSupported = true;
     } catch {
       cachedIsTypescriptSupported = false;
@@ -40,7 +40,7 @@ export function isTypescriptSupported() {
 
 export function loadTsNode(
   tsConfigPath?: string,
-  shouldTypecheck: boolean = false
+  _shouldTypecheck: boolean = false
 ) {
   try {
     require.resolve("typescript");
@@ -49,7 +49,7 @@ export function loadTsNode(
   }
 
   try {
-    require.resolve("ts-node");
+    require.resolve("tsx");
   } catch {
     throw new HardhatError(ERRORS.GENERAL.TS_NODE_NOT_INSTALLED);
   }
@@ -57,7 +57,7 @@ export function loadTsNode(
   // If we are running tests we just want to transpile
   if (isRunningHardhatCoreTests()) {
     // eslint-disable-next-line import/no-extraneous-dependencies
-    require("ts-node/register/transpile-only");
+    require("tsx/cjs");
     return;
   }
 
@@ -70,16 +70,12 @@ export function loadTsNode(
     process.env.TS_NODE_FILES = "true";
   }
 
-  let tsNodeRequirement = "ts-node/register";
-
-  if (!shouldTypecheck) {
-    tsNodeRequirement += "/transpile-only";
-  }
+  const tsNodeRequirement = "tsx/cjs";
 
   // eslint-disable-next-line import/no-extraneous-dependencies
   require(tsNodeRequirement);
 }
 
 function isTypescriptFile(path: string): boolean {
-  return path.endsWith(".ts");
+  return path.endsWith(".ts") || path.endsWith(".cts");
 }

@@ -97,22 +97,18 @@ function getTsNodeArgsIfNeeded(
   scriptPath: string,
   shouldTypecheck: boolean
 ): string[] {
-  if (process.execArgv.includes("ts-node/register")) {
+  if (process.execArgv.includes("tsx/cjs")) {
     return [];
   }
 
   // if we are running the tests we only want to transpile, or these tests
   // take forever
   if (isRunningHardhatCoreTests()) {
-    return ["--require", "ts-node/register/transpile-only"];
+    return ["--require", "tsx/cjs"];
   }
 
-  // If the script we are going to run is .ts we need ts-node
   if (/\.tsx?$/i.test(scriptPath)) {
-    return [
-      "--require",
-      `ts-node/register${shouldTypecheck ? "" : "/transpile-only"}`,
-    ];
+    return ["--require", "tsx/cjs"];
   }
 
   return [];

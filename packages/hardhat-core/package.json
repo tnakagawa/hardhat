@@ -93,6 +93,7 @@
     "sinon": "^9.0.0",
     "time-require": "^0.1.2",
     "ts-node": "^10.8.0",
+    "tsx": "^4.5.0",
     "typescript": "~5.0.0"
   },
   "dependencies": {
@@ -147,10 +148,14 @@
   },
   "peerDependencies": {
     "ts-node": "*",
+    "tsx": "*",
     "typescript": "*"
   },
   "peerDependenciesMeta": {
     "ts-node": {
+      "optional": true
+    },
+    "tsx": {
       "optional": true
     },
     "typescript": {
