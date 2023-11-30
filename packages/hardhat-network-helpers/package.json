@@ -1,6 +1,6 @@
 {
   "name": "@nomicfoundation/hardhat-network-helpers",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Hardhat utils for testing",
   "homepage": "https://github.com/nomicfoundation/hardhat/tree/main/packages/hardhat-network-helpers",
   "repository": "github:nomicfoundation/hardhat",
@@ -57,7 +57,7 @@
     "eslint-plugin-no-only-tests": "3.0.0",
     "eslint-plugin-prettier": "3.4.0",
     "ethers-v5": "npm:ethers@5",
-    "hardhat": "workspace:^2.9.5",
+    "hardhat": "workspace:^2.19.2",
     "mocha": "^10.0.0",
     "prettier": "2.4.1",
     "rimraf": "^3.0.2",

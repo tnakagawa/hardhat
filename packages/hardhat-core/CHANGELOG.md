@@ -1,5 +1,11 @@
 # hardhat
 
+## 2.19.2
+
+### Patch Changes
+
+- c3aad2c55: Added support for scopes in hh autocomplete.
+
 ## 2.19.1
 
 ### Patch Changes
