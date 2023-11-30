@@ -24,6 +24,14 @@ where
 {
 }
 
+// impl<'a, I, BE, SE> SyncInspector<BE, SE> for &'a I
+// where
+//     &'a I: Inspector<DatabaseComponentError<SE, BE>> + Debug + Send,
+//     BE: Debug + Send + 'static,
+//     SE: Debug + Send + 'static,
+// {
+// }
+
 /// Creates an evm from the provided database, config, transaction, and block.
 #[cfg_attr(feature = "tracing", tracing::instrument(skip_all))]
 pub fn build_evm<'b, 's, BlockchainErrorT, StateErrorT>(

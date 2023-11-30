@@ -2,6 +2,7 @@ mod account;
 
 use std::{
     collections::BTreeMap,
+    fmt::Debug,
     sync::Arc,
     time::{Instant, SystemTime, UNIX_EPOCH},
 };
@@ -24,11 +25,12 @@ use edr_evm::{
     },
     mine_block,
     state::{AccountModifierFn, IrregularState, StateDiff, StateError, StateOverride, SyncState},
-    Account, AccountInfo, Block, Bytecode, CfgEnv, HashMap, HashSet, MemPool, MineBlockResult,
-    MineBlockResultAndState, MineOrdering, PendingTransaction, RandomHashGenerator, StorageSlot,
-    SyncBlock, KECCAK_EMPTY,
+    Account, AccountInfo, Block, Bytecode, CallInputs, CfgEnv, EVMData, Gas, HashMap, HashSet,
+    Inspector, InstructionResult, MemPool, MineBlockResult, MineBlockResultAndState, MineOrdering,
+    PendingTransaction, RandomHashGenerator, StorageSlot, SyncBlock, SyncInspector, KECCAK_EMPTY,
 };
 use indexmap::IndexMap;
+use lazy_static::lazy_static;
 use rpc_hardhat::ForkMetadata;
 use tokio::runtime;
 
@@ -76,11 +78,22 @@ pub struct ProviderData {
     last_filter_id: U256,
     logger: Logger,
     impersonated_accounts: HashSet<Address>,
+    callbacks: Box<dyn SendInspectorCallbacks>,
 }
+
+pub trait InspectorCallbacks {
+    /// Calls to `console.*` from Solidity
+    fn console(&self, call_input: Bytes);
+}
+
+pub trait SendInspectorCallbacks: InspectorCallbacks + Debug + Send {}
+
+impl<I> SendInspectorCallbacks for I where I: InspectorCallbacks + Debug + Send {}
 
 impl ProviderData {
     pub async fn new(
         runtime: &runtime::Handle,
+        callbacks: Box<dyn SendInspectorCallbacks>,
         config: &ProviderConfig,
     ) -> Result<Self, CreationError> {
         let InitialAccounts {
@@ -122,6 +135,7 @@ impl ProviderData {
             last_filter_id: U256::ZERO,
             logger: Logger::new(false),
             impersonated_accounts: HashSet::new(),
+            callbacks,
         })
     }
 
@@ -135,7 +149,7 @@ impl ProviderData {
     }
 
     pub fn balance(
-        &self,
+        &mut self,
         address: Address,
         block_spec: Option<&BlockSpec>,
     ) -> Result<U256, ProviderError> {
@@ -234,7 +248,7 @@ impl ProviderData {
     }
 
     pub fn get_code(
-        &self,
+        &mut self,
         address: Address,
         block_spec: Option<&BlockSpec>,
     ) -> Result<Bytes, ProviderError> {
@@ -276,7 +290,7 @@ impl ProviderData {
     }
 
     pub fn get_storage_at(
-        &self,
+        &mut self,
         address: Address,
         index: U256,
         block_spec: Option<&BlockSpec>,
@@ -287,7 +301,7 @@ impl ProviderData {
     }
 
     pub fn get_transaction_count(
-        &self,
+        &mut self,
         address: Address,
         block_spec: Option<&BlockSpec>,
     ) -> Result<u64, ProviderError> {
@@ -764,7 +778,7 @@ impl ProviderData {
     }
 
     fn execute_in_block_state<T>(
-        &self,
+        &mut self,
         block_spec: Option<&BlockSpec>,
         function: impl FnOnce(Box<dyn SyncState<StateError>>) -> T,
     ) -> Result<T, ProviderError> {
@@ -778,7 +792,7 @@ impl ProviderData {
 
     /// Mine a block at a specific timestamp
     fn mine_block(
-        &self,
+        &mut self,
         timestamp: u64,
         prevrandao: Option<B256>,
     ) -> Result<MineBlockResultAndState<StateError>, ProviderError> {
@@ -786,6 +800,8 @@ impl ProviderData {
         let reward = U256::ZERO;
 
         let evm_config = self.create_evm_config();
+
+        let mut inspector = EvmInspector::new(&mut *self.callbacks);
 
         let result = mine_block(
             &*self.blockchain,
@@ -800,14 +816,16 @@ impl ProviderData {
             reward,
             self.next_block_base_fee_per_gas,
             prevrandao,
-            None,
+            Some(&mut inspector),
         )?;
 
         Ok(result)
     }
 
     /// Mines a pending block, without modifying any values.
-    pub fn mine_pending_block(&self) -> Result<MineBlockResultAndState<StateError>, ProviderError> {
+    pub fn mine_pending_block(
+        &mut self,
+    ) -> Result<MineBlockResultAndState<StateError>, ProviderError> {
         let (block_timestamp, _new_offset) = self.next_block_timestamp(None)?;
         let prevrandao = if self.blockchain.spec_id() >= SpecId::MERGE {
             Some(self.prev_randao_generator.seed())
@@ -905,7 +923,7 @@ impl ProviderData {
     }
 
     fn state_by_block_spec(
-        &self,
+        &mut self,
         block_spec: Option<&BlockSpec>,
     ) -> Result<Box<dyn SyncState<StateError>>, ProviderError> {
         let block = if let Some(block_spec) = block_spec {
@@ -1048,6 +1066,41 @@ pub struct BlockDataForTransaction {
     pub transaction_index: u64,
 }
 
+lazy_static! {
+    static ref CONSOLE_ADDRESS: Address = "0x000000000000000000636F6e736F6c652e6c6f67"
+        .parse()
+        .expect("static ok");
+}
+
+#[derive(Debug)]
+struct EvmInspector<'a> {
+    callbacks: &'a mut dyn SendInspectorCallbacks,
+}
+
+impl<'a> EvmInspector<'a> {
+    fn new(callbacks: &'a mut dyn SendInspectorCallbacks) -> Self {
+        Self { callbacks }
+    }
+}
+
+impl<'a, DatabaseErrorT> Inspector<DatabaseErrorT> for EvmInspector<'a> {
+    fn call(
+        &mut self,
+        _data: &mut dyn EVMData<DatabaseErrorT>,
+        inputs: &mut CallInputs,
+    ) -> (InstructionResult, Gas, Bytes) {
+        if inputs.contract == *CONSOLE_ADDRESS {
+            self.callbacks.console(inputs.input.clone())
+        }
+
+        (
+            InstructionResult::Continue,
+            Gas::new(inputs.gas_limit),
+            Bytes::new(),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use anyhow::Context;
@@ -1074,8 +1127,10 @@ mod tests {
                 vec![impersonated_account],
             );
 
+            let callbacks = Box::new(InspectorCallbacksStub {});
+
             let runtime = runtime::Handle::try_current()?;
-            let mut provider_data = ProviderData::new(&runtime, &config).await?;
+            let mut provider_data = ProviderData::new(&runtime, callbacks, &config).await?;
             provider_data
                 .impersonated_accounts
                 .insert(impersonated_account);
@@ -1121,6 +1176,13 @@ mod tests {
 
             Ok(self.provider_data.sign_transaction_request(transaction)?)
         }
+    }
+
+    #[derive(Debug)]
+    struct InspectorCallbacksStub {}
+
+    impl InspectorCallbacks for InspectorCallbacksStub {
+        fn console(&self, _call_input: Bytes) {}
     }
 
     #[tokio::test]

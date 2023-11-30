@@ -32,7 +32,7 @@ pub fn handle_get_transaction_by_block_hash_and_index(
 }
 
 pub fn handle_get_transaction_by_block_spec_and_index(
-    data: &ProviderData,
+    data: &mut ProviderData,
     block_spec: PreEip1898BlockSpec,
     index: U256,
 ) -> Result<Option<remote::eth::Transaction>, ProviderError> {

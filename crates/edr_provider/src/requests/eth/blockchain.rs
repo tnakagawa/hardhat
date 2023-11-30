@@ -11,7 +11,7 @@ pub fn handle_chain_id_request(data: &ProviderData) -> Result<U64, ProviderError
 }
 
 pub fn handle_get_transaction_count_request(
-    data: &ProviderData,
+    data: &mut ProviderData,
     address: Address,
     block_spec: Option<BlockSpec>,
 ) -> Result<U256, ProviderError> {

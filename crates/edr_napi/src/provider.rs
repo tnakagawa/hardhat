@@ -2,7 +2,9 @@ mod config;
 
 use std::sync::Arc;
 
-use napi::{tokio::runtime, Env, JsObject, Status};
+use edr_eth::Bytes;
+use edr_provider::InspectorCallbacks;
+use napi::{tokio::runtime, Env, JsFunction, JsObject, Status};
 use napi_derive::napi;
 
 use self::config::ProviderConfig;
@@ -17,13 +19,20 @@ pub struct Provider {
 impl Provider {
     #[doc = "Constructs a new provider with the provided configuration."]
     #[napi(ts_return_type = "Promise<Provider>")]
-    pub fn with_config(env: Env, config: ProviderConfig) -> napi::Result<JsObject> {
+    pub fn with_config(
+        env: Env,
+        config: ProviderConfig,
+        #[napi(ts_arg_type = "(message: Buffer) => void")] _console_log_callback: JsFunction,
+    ) -> napi::Result<JsObject> {
         let config = edr_provider::ProviderConfig::try_from(config)?;
         let runtime = runtime::Handle::current();
 
+        // TODO tie it together with JS callback
+        let callbacks = Box::new(InspectorCallbacksStub {});
+
         let (deferred, promise) = env.create_deferred()?;
         runtime.clone().spawn(async move {
-            let result = edr_provider::Provider::new(&runtime, &config)
+            let result = edr_provider::Provider::new(&runtime, callbacks, &config)
                 .await
                 .map_or_else(
                     |error| Err(napi::Error::new(Status::GenericFailure, error.to_string())),
@@ -63,4 +72,10 @@ impl Provider {
         serde_json::to_string(&response)
             .map_err(|e| napi::Error::new(Status::GenericFailure, e.to_string()))
     }
+}
+
+struct InspectorCallbacksStub {}
+
+impl InspectorCallbacks for InspectorCallbacksStub {
+    fn console(&self, _call_input: Bytes) {}
 }

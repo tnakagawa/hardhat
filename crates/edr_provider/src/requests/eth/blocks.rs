@@ -20,7 +20,7 @@ pub enum HashOrTransaction {
 }
 
 pub fn handle_get_block_by_number_request(
-    data: &ProviderData,
+    data: &mut ProviderData,
     block_spec: PreEip1898BlockSpec,
     transaction_detail_flag: bool,
 ) -> Result<Option<eth::Block<HashOrTransaction>>, ProviderError> {

@@ -143,7 +143,7 @@ where
 }
 
 /// Container for storing inspector and tracer.
-pub enum InspectorContainer<BlockchainErrorT, StateErrorT>
+pub enum InspectorContainer<'a, BlockchainErrorT, StateErrorT>
 where
     BlockchainErrorT: Debug,
     StateErrorT: Debug,
@@ -156,15 +156,15 @@ where
     Dual(
         DualInspector<
             TraceCollector,
-            Box<dyn SyncInspector<BlockchainErrorT, StateErrorT>>,
+            &'a mut dyn SyncInspector<BlockchainErrorT, StateErrorT>,
             DatabaseComponentError<StateErrorT, BlockchainErrorT>,
         >,
     ),
     /// Only an inspector.
-    Inspector(Box<dyn SyncInspector<BlockchainErrorT, StateErrorT>>),
+    Inspector(&'a mut dyn SyncInspector<BlockchainErrorT, StateErrorT>),
 }
 
-impl<BlockchainErrorT, StateErrorT> InspectorContainer<BlockchainErrorT, StateErrorT>
+impl<'a, BlockchainErrorT, StateErrorT> InspectorContainer<'a, BlockchainErrorT, StateErrorT>
 where
     BlockchainErrorT: Debug + Send + 'static,
     StateErrorT: Debug + Send + 'static,
@@ -172,7 +172,7 @@ where
     /// Constructs a new instance.
     pub fn new(
         with_trace: bool,
-        tracer: Option<Box<dyn SyncInspector<BlockchainErrorT, StateErrorT>>>,
+        tracer: Option<&'a mut dyn SyncInspector<BlockchainErrorT, StateErrorT>>,
     ) -> Self {
         if with_trace {
             if let Some(tracer) = tracer {

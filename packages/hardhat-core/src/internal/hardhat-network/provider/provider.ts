@@ -409,35 +409,38 @@ class EdrProviderWrapper extends EventEmitter implements EIP1193Provider {
 
     const coinbase = config.coinbase ?? DEFAULT_COINBASE;
 
-    const provider = await Provider.withConfig({
-      chainId: BigInt(config.chainId),
-      cacheDir: config.forkCachePath,
-      coinbase: Buffer.from(coinbase.slice(2), "hex"),
-      hardfork: ethereumsjsHardforkToEdrSpecId(
-        getHardforkName(config.hardfork)
-      ),
-      networkId: BigInt(config.chainId),
-      blockGasLimit: BigInt(config.blockGasLimit),
-      genesisAccounts: config.genesisAccounts.map((account) => {
-        return {
-          secretKey: account.privateKey,
-          balance: BigInt(account.balance),
-        };
-      }),
-      allowUnlimitedContractSize: config.allowUnlimitedContractSize,
-      allowBlocksWithSameTimestamp:
-        config.allowBlocksWithSameTimestamp ?? false,
-      initialBaseFeePerGas: BigInt(
-        config.initialBaseFeePerGas ?? 1_000_000_000
-      ),
-      mining: {
-        autoMine: config.automine,
-        interval: ethereumjsIntervalMiningConfigToEdr(config.intervalMining),
-        memPool: {
-          order: ethereumjsMempoolOrderToEdrMineOrdering(config.mempoolOrder),
+    const provider = await Provider.withConfig(
+      {
+        chainId: BigInt(config.chainId),
+        cacheDir: config.forkCachePath,
+        coinbase: Buffer.from(coinbase.slice(2), "hex"),
+        hardfork: ethereumsjsHardforkToEdrSpecId(
+          getHardforkName(config.hardfork)
+        ),
+        networkId: BigInt(config.chainId),
+        blockGasLimit: BigInt(config.blockGasLimit),
+        genesisAccounts: config.genesisAccounts.map((account) => {
+          return {
+            secretKey: account.privateKey,
+            balance: BigInt(account.balance),
+          };
+        }),
+        allowUnlimitedContractSize: config.allowUnlimitedContractSize,
+        allowBlocksWithSameTimestamp:
+          config.allowBlocksWithSameTimestamp ?? false,
+        initialBaseFeePerGas: BigInt(
+          config.initialBaseFeePerGas ?? 1_000_000_000
+        ),
+        mining: {
+          autoMine: config.automine,
+          interval: ethereumjsIntervalMiningConfigToEdr(config.intervalMining),
+          memPool: {
+            order: ethereumjsMempoolOrderToEdrMineOrdering(config.mempoolOrder),
+          },
         },
       },
-    });
+      (message: Buffer) => console.log(message)
+    );
 
     return new EdrProviderWrapper(provider);
   }

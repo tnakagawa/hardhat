@@ -3,7 +3,7 @@ use edr_eth::{remote::BlockSpec, serde::ZeroXPrefixedBytes, Address, U256};
 use crate::{data::ProviderData, ProviderError};
 
 pub fn handle_get_balance_request(
-    data: &ProviderData,
+    data: &mut ProviderData,
     address: Address,
     block_spec: Option<BlockSpec>,
 ) -> Result<U256, ProviderError> {
@@ -11,7 +11,7 @@ pub fn handle_get_balance_request(
 }
 
 pub fn handle_get_code_request(
-    data: &ProviderData,
+    data: &mut ProviderData,
     address: Address,
     block_spec: Option<BlockSpec>,
 ) -> Result<ZeroXPrefixedBytes, ProviderError> {
@@ -20,7 +20,7 @@ pub fn handle_get_code_request(
 }
 
 pub fn handle_get_storage_at_request(
-    data: &ProviderData,
+    data: &mut ProviderData,
     address: Address,
     index: U256,
     block_spec: Option<BlockSpec>,
